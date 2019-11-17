@@ -2,11 +2,11 @@ import numpy as np
 import math
 import pandas as pd
 import os
-from qtable_states import QTable
+from qtable_states import QTable, STATE_TABLE_COLUMN_NAMES_FOR_STATE
 import itertools
 import logging
 
-STATE_TABLE_FILE_NAME = 'all_states.csv'
+STATE_TABLE_FILE_NAME = 'all_states_actions.csv'
 SARS_ELEMENT_REWARD_INDEX = 2
 GAME_RESULT_WINNER_REWARD = 1
 GAME_RESULT_LOSER_REWARD = -1
@@ -80,9 +80,16 @@ class Board:
         self.board_state = np.zeros((self.board_size, self.board_size), dtype=int)
 
     def get_board_state_id(self):
-        found_indices = np.argwhere((self.board_state_df.values == self.board_state.flatten()).all(axis=1)).flatten().tolist()
-        assert len(found_indices) == 1, f'Found indices {found_indices} for search pattern {self.board_state.flatten()}'
-        return found_indices[0]
+        found_indices = np.argwhere((self.board_state_df[STATE_TABLE_COLUMN_NAMES_FOR_STATE].values == self.board_state.flatten()).all(axis=1)).flatten().tolist()
+        # assert len(found_indices) == 1, f'Found indices {found_indices} for search pattern {self.board_state.flatten()}'
+        try:
+            logging.info(f'StateID: {found_indices} and {self.board_state_df.iloc[found_indices[0]]["StateID"]}')
+        except Exception as e:
+            logging.error(f'Found indices: {found_indices}')
+            logging.error(f'DF shape: {self.board_state_df.shape}')
+            logging.exception(e)
+        # return found_indices[0]
+        return self.board_state_df.iloc[found_indices[0]]['StateID']
 
     def mark_move(self, player_id, row_pos, col_pos):
         ret_status = False
@@ -170,13 +177,6 @@ class Game:
             self.players.append(Player(each_player_id+1, self.board_inst))
 
         self.q_table_df = self.board_inst.board_state_df.copy()
-        self.q_table_df['StateID'] = self.q_table_df.index.values
-        q_table_only_df = pd.DataFrame(itertools.product(self.board_inst.board_state_df.index.tolist(), range(self.board_size*self.board_size)), columns=['StateID', 'Action'])
-        self.q_table_df = pd.merge(self.q_table_df, q_table_only_df, on=['StateID'])
-        self.q_table_df['move_validity'] = self.q_table_df.apply(lambda x: self.board_inst.is_valid_move(x.values[:-2],x.values[-1]), axis=1)
-
-        self.q_table_df = self.q_table_df[self.q_table_df['move_validity']]
-        self.q_table_df = self.q_table_df.drop('move_validity', axis=1)
  
 
     def play_one_game(self):

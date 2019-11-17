@@ -1,9 +1,12 @@
 import itertools
 import pandas as pd
+import numpy as np
 import os
 import logging
 
-STATE_TABLE_FILE_NAME = 'all_states.csv'
+STATE_TABLE_FILE_NAME = 'all_states_actions.csv'
+STATE_TABLE_COLUMN_NAMES_FOR_STATE = ['TopLeft', 'TopMid', 'TopRight', 'MidLeft', 'MidMid', 'MidRight', 'BotLeft', 'BotMid', 'BotRight']
+TERMINAL_ACTION = 9999
 
 class QTable:
 
@@ -17,6 +20,21 @@ class QTable:
             logging.info('State table File does not exist')
             self.generate_state_table()
 
+    def is_valid_move(self, flat_board_state, select_cell):
+        ret_val = False
+        empty_cell_index_list = [each_empty_index for each_empty_index in np.argwhere(flat_board_state==0)]
+        if select_cell == TERMINAL_ACTION:
+            if len(empty_cell_index_list) == 0:
+                ret_val = True
+            else:
+                ret_val = False
+        elif select_cell in empty_cell_index_list:
+            ret_val = True
+        # if select_cell in [each_empty_index for each_empty_index in np.argwhere(flat_board_state==0)]:
+        #     ret_val = True
+
+        return ret_val
+
     def generate_state_table(self):
 
         df = pd.DataFrame(list(itertools.product([0, 1, 2], repeat=9)), columns=['TopLeft', 'TopMid', 'TopRight', 'MidLeft', 'MidMid', 'MidRight', 'BotLeft', 'BotMid', 'BotRight'])
@@ -28,7 +46,19 @@ class QTable:
         df = df.drop(['num1', 'num2', 'diff'], axis=1)
         df = df.reset_index().drop('index', axis=1)
 
+        df['StateID'] = df.index.values
+        q_table_only_df = pd.DataFrame(itertools.product(df.index.tolist(), list(range(self.board_dim*self.board_dim))+[TERMINAL_ACTION]), columns=['StateID', 'Action'])
+        df = pd.merge(df, q_table_only_df, on=['StateID'])
+        df['move_validity'] = df.apply(lambda x: self.is_valid_move(x.values[:-2],x.values[-1]), axis=1)
+
+        df = df[df['move_validity']]
+        df = df.drop('move_validity', axis=1)
+
+        df = df.reset_index().drop('index', axis=1)
+        df['StateID'] = df.index.values
+
         df.to_csv(self.state_table_file_path, index=False)
+
         logging.info(f'State table file generated! and has shape: {df.shape}')
 
 if __name__ == "__main__":
