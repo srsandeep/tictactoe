@@ -149,9 +149,39 @@ class Player:
         self.my_moves = []
         self.board_obj = board_obj
         self.win_count = 0
+        self.q_table = self.board_obj.board_state_df.copy()
+        self.q_table['qvalue'] = 0
+        self.alpha = 0.7
+        self.discount_rate = 0.8
+
+    def init_qvalue(self, initial_qvalue):
+        self.q_table['qvalue'] = initial_qvalue
+
+    def update_rl_parameters(self, alpha, discount_rate):
+        self.alpha = alpha
+        self.discount_rate = discount_rate
 
     def increment_win_count(self):
         self.win_count = self.win_count + 1
+
+    def get_q_value(self, q_state, q_action=None):
+        assert q_state is not None, 'Q value requested for state None. Invalid'
+        if q_action is not None:
+            logging.debug(f'Q value for state:{q_state}, action:{q_action} is {self.q_table.loc[(self.q_table["StateID"]==q_state) & (self.q_table["Action"]==q_action),"qvalue"].values.tolist()[0]}')
+            return self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action),'qvalue'].values.tolist()[0]
+        else:
+            logging.debug(f'Q value for state:{q_state} is {self.q_table.loc[self.q_table["StateID"]==q_state, "qvalue"].values.tolist()}')
+            return self.q_table.loc[self.q_table['StateID']==q_state, 'qvalue'].values.tolist()
+
+    def set_q_value(self, q_state=None, q_action=None, q_value=0):
+        assert (q_state is not None) and (q_action is not None), 'State and action both needed to set q value'
+        self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'qvalue'] = q_value
+
+    def update_q_value(self, current_state, current_action, current_reward, next_state):
+        current_q_value = self.get_q_value(current_state, q_action=current_action)
+        off_policy_max_sdash_adash = max(self.get_q_value(q_state=next_state))
+        updated_q_value = (1 - self.alpha) * current_q_value + self.alpha * (current_reward + self.discount_rate * off_policy_max_sdash_adash)
+        self.set_q_value(q_state=current_state, q_action=current_action, q_value=updated_q_value)
 
     def make_a_move(self):
         current_state = self.board_obj.get_board_state_id()
@@ -160,6 +190,17 @@ class Player:
         my_selected_move = np.random.choice(np.array(empty_indices))
         logging.debug('Player {} selected: {} in state: {}'.format(self.player_id, my_selected_move, current_state))
         return my_selected_move
+
+    def update_sars_info(self):
+        self.update_q_value(self.current_state, self.current_action, self.last_reward, self.next_state)
+
+    def update_sas_info(self, current_state, current_action, next_state):
+        self.current_state = current_state
+        self.current_action = current_action
+        self.next_state = next_state
+
+    def update_reward_info(self, last_reward):
+        self.last_reward = last_reward
 
 class Game:
     def __init__(self, game_id, board_size, number_of_players, win_count=None):
@@ -184,9 +225,15 @@ class Game:
         state_action_reward_nstate = [list(), list()]
         current_player = np.random.choice(range(self.num_players))
         game_over = False
+        first_move = True
         # Initialize result as a tie
         reward_value = GAME_RESULT_TIE_REWARD
         while not game_over:
+            if not first_move:
+                # self.players[current_player].update_sars_info()
+                current_player = (current_player + 1) % self.num_players
+            else:
+                first_move = False
             current_state = self.board_inst.get_board_state_id()
             sel_row_id, sel_col_id = self.board_inst.mark_a_move(self.players[current_player].player_id, self.players[current_player].make_a_move())
             chosen_action = sel_row_id * self.board_size + sel_col_id
@@ -201,9 +248,18 @@ class Game:
                     logging.debug('Winner is player_id:{}. Board state:{}'.format(self.players[current_player].player_id, self.board_inst.board_state))
             logging.info('Current state: {}, Player: {} selected action: {} gets reward: {} with next state: {}'.format(current_state,self.players[current_player].player_id, chosen_action, reward_value, next_state))
             state_action_reward_nstate[current_player].append([current_state, chosen_action, reward_value, next_state])
-            current_player = (current_player + 1) % self.num_players
+
+            # self.players[current_player].update_sas_info(current_state, chosen_action, next_state)
+            # self.players[current_player].update_reward_info(reward_value)
+
             if reward_value == GAME_RESULT_WINNER_REWARD:
-                state_action_reward_nstate[current_player][-1][SARS_ELEMENT_REWARD_INDEX] = GAME_RESULT_LOSER_REWARD
+                state_action_reward_nstate[(current_player + 1) % self.num_players][-1][SARS_ELEMENT_REWARD_INDEX] = GAME_RESULT_LOSER_REWARD
+            if game_over:
+                # self.players[current_player].update_sars_info()
+                other_player_reward = GAME_RESULT_LOSER_REWARD if reward_value==GAME_RESULT_WINNER_REWARD else GAME_RESULT_TIE_REWARD
+                # self.players[(current_player + 1) % self.num_players].update_reward_info(other_player_reward)
+                # self.players[(current_player + 1) % self.num_players].update_sars_info()
+
 
         logging.info(f'Player 1 SARS: {state_action_reward_nstate[0]}')
         logging.info(f'Player 2 SARS: {state_action_reward_nstate[1]}')
@@ -211,6 +267,8 @@ class Game:
     def play_game_n_time(self, num_games):
         for _ in range(num_games):
             self.play_one_game()
+        # self.players[0].q_table.to_csv('player1_q_table.csv', index=False)
+        # self.players[1].q_table.to_csv('player2_q_table.csv', index=False)
 
         logging.info('Num Games: {}'.format(num_games))
         logging.info('Win counts: {}'.format(dict(zip([each_player.player_id for each_player in self.players], [each_player.win_count for each_player in self.players]))))

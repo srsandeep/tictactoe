@@ -46,8 +46,8 @@ class QTable:
         df = df.drop(['num1', 'num2', 'diff'], axis=1)
         df = df.reset_index().drop('index', axis=1)
 
-        df['StateID'] = df.index.values
-        q_table_only_df = pd.DataFrame(itertools.product(df.index.tolist(), list(range(self.board_dim*self.board_dim))+[TERMINAL_ACTION]), columns=['StateID', 'Action'])
+        df['StateID'] = df.index.values.copy()
+        q_table_only_df = pd.DataFrame(itertools.product(df['StateID'].values.tolist(), list(range(self.board_dim*self.board_dim))+[TERMINAL_ACTION]), columns=['StateID', 'Action'])
         df = pd.merge(df, q_table_only_df, on=['StateID'])
         df['move_validity'] = df.apply(lambda x: self.is_valid_move(x.values[:-2],x.values[-1]), axis=1)
 
@@ -55,7 +55,7 @@ class QTable:
         df = df.drop('move_validity', axis=1)
 
         df = df.reset_index().drop('index', axis=1)
-        df['StateID'] = df.index.values
+        # df['StateID'] = df.index.values
 
         df.to_csv(self.state_table_file_path, index=False)
 
