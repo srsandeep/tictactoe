@@ -7,57 +7,6 @@ import itertools
 import logging
 
 STATE_TABLE_FILE_NAME = 'all_states_actions.csv'
-SARS_ELEMENT_REWARD_INDEX = 2
-GAME_RESULT_WINNER_REWARD = 1
-GAME_RESULT_LOSER_REWARD = -1
-GAME_RESULT_TIE_REWARD = 0
-
-def generate_patterns_at_pos(row_index=0, column_idx=0, out_dim=0, win_length=0):
-    pattern_list = []
-    if (row_index + win_length <= out_dim) or (column_idx + win_length <= out_dim):
-
-        if row_index + win_length <= out_dim:
-            ret_array = np.zeros((out_dim, out_dim), dtype=int)
-            ret_array[row_index:row_index+win_length, column_idx] = 1
-            pattern_list += [ret_array.flatten().tolist()]
-            pattern_list += [ret_array.transpose().flatten().tolist()]
-            pattern_list += [np.fliplr(ret_array).flatten().tolist()]
-            pattern_list += [np.fliplr(ret_array.transpose()).flatten().tolist()]
-            pattern_list += [np.flipud(ret_array).flatten().tolist()]
-            pattern_list += [np.flipud(ret_array.transpose()).flatten().tolist()]
-
-        if (row_index + win_length <= out_dim) and (column_idx + win_length <= out_dim):
-            ret_array = np.zeros((out_dim, out_dim), dtype=int)
-            ret_array[row_index:row_index+win_length, column_idx:column_idx+win_length] = \
-                np.identity(win_length, dtype=int)
-            pattern_list += [ret_array.flatten().tolist()]
-            pattern_list += [np.fliplr(ret_array).flatten().tolist()]
-            pattern_list += [np.flipud(ret_array).flatten().tolist()]
-
-        if (row_index + win_length <= out_dim) and (column_idx + win_length <= out_dim):
-            ret_array = np.zeros((out_dim, out_dim), dtype=int)
-            ret_array[row_index:row_index+win_length, column_idx:column_idx+win_length] = \
-                np.fliplr(np.identity(win_length, dtype=int))
-            pattern_list += [ret_array.flatten().tolist()]
-            pattern_list += [np.fliplr(ret_array).flatten().tolist()]
-            pattern_list += [np.flipud(ret_array).flatten().tolist()]
-
-    logging.debug('Pattern generated at r:{}, c: {} is {}'.format(row_index, column_idx, pattern_list))
-
-    return pattern_list
-
-
-def generate_winning_pattern(order, win_count):
-    return_patterns_list = []
-    for row_idx in range(math.ceil(order/2)):
-        for col_idx in range(row_idx+1):
-            return_patterns_list += generate_patterns_at_pos(row_index=row_idx, 
-                                                            column_idx=col_idx, 
-                                                            out_dim=order, 
-                                                            win_length=win_count)
-    return_patterns_list = pd.DataFrame(return_patterns_list).drop_duplicates().values.tolist()
-    converted_to_arrays = [np.array(each_list_item, dtype=int).reshape((order, order)) for each_list_item in return_patterns_list]
-    return converted_to_arrays
 
 
 class Board:
@@ -65,7 +14,7 @@ class Board:
     def __init__(self, board_size: int, win_count: int = 3):
         self.board_size = board_size
         self.win_count = win_count
-        self.winning_patterns = generate_winning_pattern(self.board_size, self.win_count)
+        self.winning_patterns = self.generate_winning_pattern()
         # self.winning_patterns = WINNING_PATTERNS
         self.board_state = np.zeros((self.board_size, self.board_size), dtype=int)
 
@@ -83,7 +32,7 @@ class Board:
         found_indices = np.argwhere((self.board_state_df[STATE_TABLE_COLUMN_NAMES_FOR_STATE].values == self.board_state.flatten()).all(axis=1)).flatten().tolist()
         # assert len(found_indices) == 1, f'Found indices {found_indices} for search pattern {self.board_state.flatten()}'
         try:
-            logging.info(f'StateID: {found_indices} and {self.board_state_df.iloc[found_indices[0]]["StateID"]}')
+            logging.debug(f'StateID: {found_indices} and {self.board_state_df.iloc[found_indices[0]]["StateID"]}')
         except Exception as e:
             logging.error(f'Found indices: {found_indices}')
             logging.error(f'DF shape: {self.board_state_df.shape}')
@@ -143,141 +92,48 @@ class Board:
         # return (self.board_state.size - np.count_nonzero(self.board_state)) == 0
         return exit_criteria_satisfied, winner_id
 
-class Player:
-    def __init__(self, player_id, board_obj):
-        self.player_id = player_id
-        self.my_moves = []
-        self.board_obj = board_obj
-        self.win_count = 0
-        self.q_table = self.board_obj.board_state_df.copy()
-        self.q_table['qvalue'] = 0
-        self.alpha = 0.7
-        self.discount_rate = 0.8
+    def generate_patterns_at_pos(self, row_index=0, column_idx=0):
+        pattern_list = []
+        if (row_index + self.win_count <= self.board_size) or (column_idx + self.win_count <= self.board_size):
 
-    def init_qvalue(self, initial_qvalue):
-        self.q_table['qvalue'] = initial_qvalue
+            if row_index + self.win_count <= self.board_size:
+                ret_array = np.zeros((self.board_size, self.board_size), dtype=int)
+                ret_array[row_index:row_index+self.win_count, column_idx] = 1
+                pattern_list += [ret_array.flatten().tolist()]
+                pattern_list += [ret_array.transpose().flatten().tolist()]
+                pattern_list += [np.fliplr(ret_array).flatten().tolist()]
+                pattern_list += [np.fliplr(ret_array.transpose()).flatten().tolist()]
+                pattern_list += [np.flipud(ret_array).flatten().tolist()]
+                pattern_list += [np.flipud(ret_array.transpose()).flatten().tolist()]
 
-    def update_rl_parameters(self, alpha, discount_rate):
-        self.alpha = alpha
-        self.discount_rate = discount_rate
+            if (row_index + self.win_count <= self.board_size) and (column_idx + self.win_count <= self.board_size):
+                ret_array = np.zeros((self.board_size, self.board_size), dtype=int)
+                ret_array[row_index:row_index+self.win_count, column_idx:column_idx+self.win_count] = \
+                    np.identity(self.win_count, dtype=int)
+                pattern_list += [ret_array.flatten().tolist()]
+                pattern_list += [np.fliplr(ret_array).flatten().tolist()]
+                pattern_list += [np.flipud(ret_array).flatten().tolist()]
 
-    def increment_win_count(self):
-        self.win_count = self.win_count + 1
+            if (row_index + self.win_count <= self.board_size) and (column_idx + self.win_count <= self.board_size):
+                ret_array = np.zeros((self.board_size, self.board_size), dtype=int)
+                ret_array[row_index:row_index+self.win_count, column_idx:column_idx+self.win_count] = \
+                    np.fliplr(np.identity(self.win_count, dtype=int))
+                pattern_list += [ret_array.flatten().tolist()]
+                pattern_list += [np.fliplr(ret_array).flatten().tolist()]
+                pattern_list += [np.flipud(ret_array).flatten().tolist()]
 
-    def get_q_value(self, q_state, q_action=None):
-        assert q_state is not None, 'Q value requested for state None. Invalid'
-        if q_action is not None:
-            logging.debug(f'Q value for state:{q_state}, action:{q_action} is {self.q_table.loc[(self.q_table["StateID"]==q_state) & (self.q_table["Action"]==q_action),"qvalue"].values.tolist()[0]}')
-            return self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action),'qvalue'].values.tolist()[0]
-        else:
-            logging.debug(f'Q value for state:{q_state} is {self.q_table.loc[self.q_table["StateID"]==q_state, "qvalue"].values.tolist()}')
-            return self.q_table.loc[self.q_table['StateID']==q_state, 'qvalue'].values.tolist()
+        logging.debug('Pattern generated at r:{}, c: {} is {}'.format(row_index, column_idx, pattern_list))
 
-    def set_q_value(self, q_state=None, q_action=None, q_value=0):
-        assert (q_state is not None) and (q_action is not None), 'State and action both needed to set q value'
-        self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'qvalue'] = q_value
-
-    def update_q_value(self, current_state, current_action, current_reward, next_state):
-        current_q_value = self.get_q_value(current_state, q_action=current_action)
-        off_policy_max_sdash_adash = max(self.get_q_value(q_state=next_state))
-        updated_q_value = (1 - self.alpha) * current_q_value + self.alpha * (current_reward + self.discount_rate * off_policy_max_sdash_adash)
-        self.set_q_value(q_state=current_state, q_action=current_action, q_value=updated_q_value)
-
-    def make_a_move(self):
-        current_state = self.board_obj.get_board_state_id()
-        empty_indices = self.board_obj.get_empty_cell_indices()
-        assert empty_indices, 'No empty cells to make a move'
-        my_selected_move = np.random.choice(np.array(empty_indices))
-        logging.debug('Player {} selected: {} in state: {}'.format(self.player_id, my_selected_move, current_state))
-        return my_selected_move
-
-    def update_sars_info(self):
-        self.update_q_value(self.current_state, self.current_action, self.last_reward, self.next_state)
-
-    def update_sas_info(self, current_state, current_action, next_state):
-        self.current_state = current_state
-        self.current_action = current_action
-        self.next_state = next_state
-
-    def update_reward_info(self, last_reward):
-        self.last_reward = last_reward
-
-class Game:
-    def __init__(self, game_id, board_size, number_of_players, win_count=None):
-        self.game_id = game_id
-        self.num_players = number_of_players
-        self.board_size = board_size
-        if win_count is None:
-            self.num_liner_cells_to_win = self.board_size
-        else:
-            self.num_liner_cells_to_win = win_count
-
-        self.players = []
-        self.board_inst = Board(self.board_size, win_count=self.board_size)
-        for each_player_id in range(self.num_players):
-            self.players.append(Player(each_player_id+1, self.board_inst))
-
-        self.q_table_df = self.board_inst.board_state_df.copy()
- 
-
-    def play_one_game(self):
-        self.board_inst.reset_board()
-        state_action_reward_nstate = [list(), list()]
-        current_player = np.random.choice(range(self.num_players))
-        game_over = False
-        first_move = True
-        # Initialize result as a tie
-        reward_value = GAME_RESULT_TIE_REWARD
-        while not game_over:
-            if not first_move:
-                # self.players[current_player].update_sars_info()
-                current_player = (current_player + 1) % self.num_players
-            else:
-                first_move = False
-            current_state = self.board_inst.get_board_state_id()
-            sel_row_id, sel_col_id = self.board_inst.mark_a_move(self.players[current_player].player_id, self.players[current_player].make_a_move())
-            chosen_action = sel_row_id * self.board_size + sel_col_id
-            next_state = self.board_inst.get_board_state_id()
-            game_over, winner_id = self.board_inst.is_game_over()
-            if game_over:
-                if winner_id == 0:
-                    logging.debug('Game drawn. Board state: {}'.format(self.board_inst.board_state))
-                else:
-                    reward_value = GAME_RESULT_WINNER_REWARD
-                    self.players[current_player].increment_win_count()
-                    logging.debug('Winner is player_id:{}. Board state:{}'.format(self.players[current_player].player_id, self.board_inst.board_state))
-            logging.info('Current state: {}, Player: {} selected action: {} gets reward: {} with next state: {}'.format(current_state,self.players[current_player].player_id, chosen_action, reward_value, next_state))
-            state_action_reward_nstate[current_player].append([current_state, chosen_action, reward_value, next_state])
-
-            # self.players[current_player].update_sas_info(current_state, chosen_action, next_state)
-            # self.players[current_player].update_reward_info(reward_value)
-
-            if reward_value == GAME_RESULT_WINNER_REWARD:
-                state_action_reward_nstate[(current_player + 1) % self.num_players][-1][SARS_ELEMENT_REWARD_INDEX] = GAME_RESULT_LOSER_REWARD
-            if game_over:
-                # self.players[current_player].update_sars_info()
-                other_player_reward = GAME_RESULT_LOSER_REWARD if reward_value==GAME_RESULT_WINNER_REWARD else GAME_RESULT_TIE_REWARD
-                # self.players[(current_player + 1) % self.num_players].update_reward_info(other_player_reward)
-                # self.players[(current_player + 1) % self.num_players].update_sars_info()
+        return pattern_list
 
 
-        logging.info(f'Player 1 SARS: {state_action_reward_nstate[0]}')
-        logging.info(f'Player 2 SARS: {state_action_reward_nstate[1]}')
+    def generate_winning_pattern(self):
+        return_patterns_list = []
+        for row_idx in range(math.ceil(self.board_size/2)):
+            for col_idx in range(row_idx+1):
+                return_patterns_list += self.generate_patterns_at_pos(row_index=row_idx, 
+                                                                column_idx=col_idx)
+        return_patterns_list = pd.DataFrame(return_patterns_list).drop_duplicates().values.tolist()
+        converted_to_arrays = [np.array(each_list_item, dtype=int).reshape((self.board_size, self.board_size)) for each_list_item in return_patterns_list]
+        return converted_to_arrays
 
-    def play_game_n_time(self, num_games):
-        for _ in range(num_games):
-            self.play_one_game()
-        # self.players[0].q_table.to_csv('player1_q_table.csv', index=False)
-        # self.players[1].q_table.to_csv('player2_q_table.csv', index=False)
-
-        logging.info('Num Games: {}'.format(num_games))
-        logging.info('Win counts: {}'.format(dict(zip([each_player.player_id for each_player in self.players], [each_player.win_count for each_player in self.players]))))
-
-
-
-if __name__ == "__main__":
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
-    game_inst = Game(0, 3, 2, win_count=3)
-    game_inst.play_game_n_time(1)
-
-    logging.info('Exiting program')
