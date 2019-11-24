@@ -1,26 +1,23 @@
 import logging
 from game import Game
-from player import Player
-from dummy_player import DummyPlayer
-from sarsa_player import SARSAPlayer
-from template_player import TemplatePlayer
-from qlearning_sarsa_player import QlearningSARSAPlayer
+from random_player import RandomPlayer
 from qlearning_player import QlearningPlayer
+from qlearning_sarsa_player import QlearningSARSAPlayer
 from interactive_player import InteractivePlayer
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
     game_inst = Game(3, 2, win_count=3)
-    player1 = Player(1)
+    player1 = QlearningPlayer(1)
     player1.update_rl_parameters()
 
-    player2 = Player(2)
+    player2 = QlearningPlayer(2)
     player1.update_rl_parameters()
 
-    player3 = SARSAPlayer(1, 0.01)
+    player3 = QlearningSARSAPlayer(1, 0.01)
     player3.update_rl_parameters()
 
-    player4 = SARSAPlayer(2, 0.2)
+    player4 = QlearningSARSAPlayer(2, 0.2)
     player4.update_rl_parameters()
 
     player5 = QlearningSARSAPlayer(1, 0.05)
