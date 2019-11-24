@@ -1,3 +1,4 @@
 .git/
 rlenv/*
 __pycache__/*.pyc
+*.pyc
