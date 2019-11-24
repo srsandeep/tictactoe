@@ -1,11 +1,37 @@
 import logging
 from game import Game
 from player import Player
+from dummy_player import DummyPlayer
+from sarsa_player import SARSAPlayer
+from template_player import TemplatePlayer
+from qlearning_sarsa_player import QlearningSARSAPlayer
+from qlearning_player import QlearningPlayer
+from interactive_player import InteractivePlayer
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
     game_inst = Game(3, 2, win_count=3)
-    game_inst.register_players([Player(1), Player(2)])
-    game_inst.play_game_n_time(10000)
+    player1 = Player(1)
+    player1.update_rl_parameters()
+
+    player2 = Player(2)
+    player1.update_rl_parameters()
+
+    player3 = SARSAPlayer(1, 0.01)
+    player3.update_rl_parameters()
+
+    player4 = SARSAPlayer(2, 0.2)
+    player4.update_rl_parameters()
+
+    player5 = QlearningSARSAPlayer(1, 0.05)
+    player5.update_rl_parameters(alpha=0.5, discount_rate=0.95, initial_q_value=0.6)
+    # player6 = QlearningSARSAPlayer(2, 0.1)
+    player6 = InteractivePlayer(2)
+    # player6.update_rl_parameters(alpha=0.9, discount_rate=0.95, initial_q_value=0.6)
+
+    game_inst.register_players([player5, player6])
+    for each_player in game_inst.players:
+        each_player.game_prestart_hook()
+    game_inst.play_game_n_time(3)
 
     logging.info('Exiting program')

@@ -28,6 +28,9 @@ class Board:
     def reset_board(self):
         self.board_state = np.zeros((self.board_size, self.board_size), dtype=int)
 
+    def get_board_state(self):
+        return self.board_state
+
     def get_board_state_id(self):
         found_indices = np.argwhere((self.board_state_df[STATE_TABLE_COLUMN_NAMES_FOR_STATE].values == self.board_state.flatten()).all(axis=1)).flatten().tolist()
         # assert len(found_indices) == 1, f'Found indices {found_indices} for search pattern {self.board_state.flatten()}'
@@ -68,6 +71,24 @@ class Board:
 
     def is_valid_move(self, flat_board_state, select_cell):
         return True if select_cell in [each_empty_index for each_empty_index in np.argwhere(flat_board_state==0)] else False
+
+    def register_player_ids(self, player_id_list):
+        self.player_ids = player_id_list
+
+    def is_life_saver(self, selected_pos, next_player_id):
+        temp_board_state = self.board_state.copy()
+        temp_board_state[int(selected_pos/self.board_size),int(selected_pos % self.board_size)] = next_player_id
+        is_life_saving_move = False
+        player_map = np.where(temp_board_state == next_player_id, 1, 0)
+        logging.debug(f'pos:{selected_pos}, nextPid:{next_player_id},state:{temp_board_state}, map:{player_map}')
+        logging.debug('Verifying life saver for player_id: {} with array: {}'.format(next_player_id, player_map))
+        for each_win_pattern in self.winning_patterns:
+            if np.logical_and(player_map, each_win_pattern).sum() == self.win_count:
+                logging.debug('{} would have won with pattern {}'.format(next_player_id, player_map))
+                is_life_saving_move = True
+                break
+        return is_life_saving_move
+
 
     def is_game_over(self):
         exit_criteria_satisfied = False
@@ -111,16 +132,29 @@ class Board:
                 ret_array[row_index:row_index+self.win_count, column_idx:column_idx+self.win_count] = \
                     np.identity(self.win_count, dtype=int)
                 pattern_list += [ret_array.flatten().tolist()]
+                pattern_list += [ret_array.transpose().flatten().tolist()]
                 pattern_list += [np.fliplr(ret_array).flatten().tolist()]
+                pattern_list += [np.fliplr(ret_array.transpose()).flatten().tolist()]
                 pattern_list += [np.flipud(ret_array).flatten().tolist()]
+                pattern_list += [np.flipud(ret_array.transpose()).flatten().tolist()]
 
-            if (row_index + self.win_count <= self.board_size) and (column_idx + self.win_count <= self.board_size):
+            if column_idx + self.win_count <= self.board_size:
                 ret_array = np.zeros((self.board_size, self.board_size), dtype=int)
-                ret_array[row_index:row_index+self.win_count, column_idx:column_idx+self.win_count] = \
-                    np.fliplr(np.identity(self.win_count, dtype=int))
+                ret_array[row_index,column_idx:column_idx+self.win_count] = 1
                 pattern_list += [ret_array.flatten().tolist()]
+                pattern_list += [ret_array.transpose().flatten().tolist()]
                 pattern_list += [np.fliplr(ret_array).flatten().tolist()]
+                pattern_list += [np.fliplr(ret_array.transpose()).flatten().tolist()]
                 pattern_list += [np.flipud(ret_array).flatten().tolist()]
+                pattern_list += [np.flipud(ret_array.transpose()).flatten().tolist()]
+
+            # if (row_index + self.win_count <= self.board_size) and (column_idx + self.win_count <= self.board_size):
+            #     ret_array = np.zeros((self.board_size, self.board_size), dtype=int)
+            #     ret_array[row_index:row_index+self.win_count, column_idx:column_idx+self.win_count] = \
+            #         np.fliplr(np.identity(self.win_count, dtype=int))
+            #     pattern_list += [ret_array.flatten().tolist()]
+            #     pattern_list += [np.fliplr(ret_array).flatten().tolist()]
+            #     pattern_list += [np.flipud(ret_array).flatten().tolist()]
 
         logging.debug('Pattern generated at r:{}, c: {} is {}'.format(row_index, column_idx, pattern_list))
 
@@ -135,5 +169,6 @@ class Board:
                                                                 column_idx=col_idx)
         return_patterns_list = pd.DataFrame(return_patterns_list).drop_duplicates().values.tolist()
         converted_to_arrays = [np.array(each_list_item, dtype=int).reshape((self.board_size, self.board_size)) for each_list_item in return_patterns_list]
+        logging.debug('Winning patterns: {}'.format(converted_to_arrays))
         return converted_to_arrays
 

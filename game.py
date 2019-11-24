@@ -10,6 +10,7 @@ from player import Player
 SARS_ELEMENT_REWARD_INDEX = 2
 GAME_RESULT_WINNER_REWARD = 1
 GAME_RESULT_LOSER_REWARD = -1
+GAME_LIFE_SAVING_REWARD = 0.2
 GAME_RESULT_TIE_REWARD = 0
 
 class Game:
@@ -60,6 +61,9 @@ class Game:
                     reward_value = GAME_RESULT_WINNER_REWARD
                     self.players[current_player].increment_win_count()
                     logging.debug('Winner is player_id:{}. Board state:{}'.format(self.players[current_player].player_id, self.board_inst.board_state))
+            elif self.board_inst.is_life_saver(chosen_action, self.players[(current_player + 1) % self.num_players].player_id):
+                reward_value = GAME_LIFE_SAVING_REWARD
+
             logging.debug('CurState: {}, Player: {} Action: {} reward: {} NextState: {}'.format(current_state,self.players[current_player].player_id, chosen_action, reward_value, next_state))
             state_action_reward_nstate[current_player].append([current_state, chosen_action, reward_value, next_state])
 
@@ -82,10 +86,16 @@ class Game:
 
     def play_game_n_time(self, num_games):
         assert len(self.players) == self.num_players, 'Not enough players for the game'
+
+        player_id_list = [each_player.player_id for each_player in self.players]
+        self.board_inst.register_player_ids(player_id_list)
+
         for i in range(num_games):
             self.play_one_game(gameid=i)
-        self.players[0].q_table.to_csv('player1_q_table.csv', index=False)
-        self.players[1].q_table.to_csv('player2_q_table.csv', index=False)
+
+        for each_player_index in range(len(self.players)):
+            if hasattr(self.players[each_player_index], 'save_all_info'):
+                self.players[each_player_index].save_all_info()
 
         logging.info('Num Games: {}'.format(num_games))
         logging.info('Win counts: {}'.format(dict(zip([each_player.player_id for each_player in self.players], [each_player.win_count for each_player in self.players]))))

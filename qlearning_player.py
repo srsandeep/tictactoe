@@ -4,27 +4,31 @@ import pandas as pd
 import os
 import itertools
 import logging
+from template_player import TemplatePlayer
+from qtable_states import STATE_TABLE_COLUMN_NAMES_FOR_STATE as state_col_names
 
-class Player:
+class QlearningPlayer(TemplatePlayer):
     def __init__(self, player_id):
-        self.player_id = player_id
-        self.my_moves = []
-        self.win_count = 0
-        self.alpha = 0.7
-        self.discount_rate = 0.8
-        self.load_all_info()
+        super().__init__(player_id)
+        self.update_rl_parameters(alpha=0.7,discount_rate=0.8, initial_q_value=0.6)
+        self.app_init_qvalue = True
+        self.q_table = None
+        self.player_type = 'QlearningPlayer'
 
     def assign_board(self, board_inst):
         self.board_obj = board_inst
         if self.q_table is None:
             self.q_table = self.board_obj.board_state_df.copy()
+            if self.app_init_qvalue:
+                self.init_qvalue(self.init_q_value)
 
     def init_qvalue(self, initial_qvalue):
         self.q_table['qvalue'] = initial_qvalue
 
-    def update_rl_parameters(self, alpha=0.9, discount_rate=0.95):
+    def update_rl_parameters(self, alpha=0.9, discount_rate=0.95, initial_q_value=0.6):
         self.alpha = alpha
         self.discount_rate = discount_rate
+        self.init_q_value = initial_q_value
 
     def increment_win_count(self):
         self.win_count = self.win_count + 1
@@ -54,11 +58,8 @@ class Player:
     def make_a_move(self):
         assert self.board_obj is not None, f'Player {self.player_id} not assigned a board'
         current_state = self.board_obj.get_board_state_id()
-        # empty_indices = self.board_obj.get_empty_cell_indices()
         best_q_value = max(self.get_q_value(current_state))
         my_selected_move = np.random.choice(self.q_table.loc[(self.q_table['StateID']==current_state) & (self.q_table['qvalue']==best_q_value), 'Action'])
-        # assert empty_indices, 'No empty cells to make a move'
-        # my_selected_move = np.random.choice(np.array(empty_indices))
         logging.debug('Player {} selected: {} in state: {}'.format(self.player_id, my_selected_move, current_state))
         return my_selected_move
 
@@ -74,10 +75,11 @@ class Player:
         self.last_reward = last_reward
 
     def save_all_info(self):
-        self.q_table.to_csv('player'+ str(self.player_id) + '_q_table.csv', index=False)
+        state_file = self.player_type + '_' + str(self.player_id) + '_' + 'q_table.csv'
+        self.q_table.to_csv(state_file, index=False)
 
     def load_all_info(self):
-        state_file = 'player'+ str(self.player_id) + '_q_table.csv'
+        state_file = self.player_type + '_' + str(self.player_id) + '_' + 'q_table.csv'
         if os.path.exists(state_file):
             self.q_table = pd.read_csv(state_file)
-
+            self.app_init_qvalue = False
