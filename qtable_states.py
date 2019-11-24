@@ -16,9 +16,6 @@ class QTable:
         self.state_table_file_path = os.path.join(os.path.dirname(__file__), self.state_table_file_name)
         self.state_table_file_exists = os.path.exists(self.state_table_file_path)
 
-        if not self.state_table_file_exists:
-            logging.info('State table File does not exist')
-            self.generate_state_table()
 
     def is_valid_move(self, flat_board_state, select_cell):
         ret_val = False
@@ -55,11 +52,15 @@ class QTable:
         df = df.drop('move_validity', axis=1)
 
         df = df.reset_index().drop('index', axis=1)
-        # df['StateID'] = df.index.values
 
         df.to_csv(self.state_table_file_path, index=False)
 
         logging.info(f'State table file generated! and has shape: {df.shape}')
+
+    def create_state_action_look_up_table(self):
+        if not self.state_table_file_exists:
+            logging.info('State table File does not exist')
+            self.generate_state_table()
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)

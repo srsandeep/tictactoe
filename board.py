@@ -23,6 +23,7 @@ class Board:
         self.state_table_file_exists = os.path.exists(self.state_table_file_path)
         if not self.state_table_file_exists:
             qtable = QTable(self.board_size)
+            qtable.create_state_action_look_up_table()
         self.board_state_df = pd.read_csv(self.state_table_file_path)
 
     def reset_board(self):
