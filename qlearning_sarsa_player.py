@@ -1,4 +1,3 @@
-from player import Player
 import logging
 import numpy as np
 from qlearning_player import QlearningPlayer

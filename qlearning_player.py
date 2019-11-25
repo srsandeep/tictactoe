@@ -81,5 +81,6 @@ class QlearningPlayer(TemplatePlayer):
     def load_all_info(self):
         state_file = self.player_type + '_' + str(self.player_id) + '_' + 'q_table.csv'
         if os.path.exists(state_file):
+            logging.warning(f'Loading learnt data from {state_file}')
             self.q_table = pd.read_csv(state_file)
             self.app_init_qvalue = False

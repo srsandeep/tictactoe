@@ -46,3 +46,7 @@ class TemplatePlayer:
 
     def load_all_info(self):
         pass
+
+    def end_of_game_information(self, moves_info):
+        logging.debug(f'End of game information: {moves_info}')
+        pass

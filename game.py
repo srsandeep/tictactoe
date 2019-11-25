@@ -5,12 +5,11 @@ import os
 import itertools
 import logging
 from board import Board
-from player import Player
 
 SARS_ELEMENT_REWARD_INDEX = 2
 GAME_RESULT_WINNER_REWARD = 1
 GAME_RESULT_LOSER_REWARD = -1
-GAME_LIFE_SAVING_REWARD = 0.2
+GAME_LIFE_SAVING_REWARD = 0
 GAME_RESULT_TIE_REWARD = 0
 
 class Game:
@@ -37,7 +36,7 @@ class Game:
 
     def play_one_game(self, gameid=1):
         self.board_inst.reset_board()
-        state_action_reward_nstate = [list(), list()]
+        state_action_reward_nstate = [list() for each_player in self.players]
         current_player = np.random.choice(range(self.num_players))
         game_over = False
         first_move = True
@@ -80,11 +79,11 @@ class Game:
                 self.players[(current_player + 1) % self.num_players].update_sars_info()
 
 
-        logging.debug(f'Player 1 SARS: {state_action_reward_nstate[0]}')
-        logging.debug(f'Player 2 SARS: {state_action_reward_nstate[1]}')
+        for player_index, each_player in enumerate(self.players):
+            each_player.end_of_game_information(state_action_reward_nstate[player_index])
         logging.info(f'Head-2-Head stats: {self.head_2_head_stats_df.tail(1).values}')
 
-    def play_game_n_time(self, num_games):
+    def play_game_n_time(self, num_games, learning_mode=True):
         assert len(self.players) == self.num_players, 'Not enough players for the game'
 
         player_id_list = [each_player.player_id for each_player in self.players]
@@ -92,10 +91,10 @@ class Game:
 
         for i in range(num_games):
             self.play_one_game(gameid=i)
-
-        for each_player_index in range(len(self.players)):
-            if hasattr(self.players[each_player_index], 'save_all_info'):
-                self.players[each_player_index].save_all_info()
+        if learning_mode:
+            for each_player_index in range(len(self.players)):
+                if hasattr(self.players[each_player_index], 'save_all_info'):
+                    self.players[each_player_index].save_all_info()
 
         logging.info('Num Games: {}'.format(num_games))
         logging.info('Win counts: {}'.format(dict(zip([each_player.player_id for each_player in self.players], [each_player.win_count for each_player in self.players]))))

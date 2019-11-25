@@ -1,4 +1,3 @@
-from player import Player
 import logging
 import numpy as np
 from template_player import TemplatePlayer

@@ -20,15 +20,26 @@ if __name__ == "__main__":
     player4 = QlearningSARSAPlayer(2, 0.2)
     player4.update_rl_parameters()
 
-    player5 = QlearningSARSAPlayer(1, 0.05)
-    player5.update_rl_parameters(alpha=0.5, discount_rate=0.95, initial_q_value=0.6)
-    # player6 = QlearningSARSAPlayer(2, 0.1)
-    player6 = InteractivePlayer(2)
-    # player6.update_rl_parameters(alpha=0.9, discount_rate=0.95, initial_q_value=0.6)
+    player5 = QlearningSARSAPlayer(1, 0.1)
+    player5.update_rl_parameters(alpha=0.7, discount_rate=0.9, initial_q_value=0)
+    # player6 = InteractivePlayer(2)
+    # player6 = RandomPlayer(2)
+    player6 = QlearningSARSAPlayer(2, 0.1)
+    player6.update_rl_parameters(alpha=0.6, discount_rate=0.7, initial_q_value=0)
 
     game_inst.register_players([player5, player6])
     for each_player in game_inst.players:
         each_player.game_prestart_hook()
-    game_inst.play_game_n_time(3)
+    game_inst.play_game_n_time(50000, learning_mode=False)
 
     logging.info('Exiting program')
+
+# SARSA QLearning - P1: alpha=0.7, discount_rate=0.9, initial_q_value=0.6
+#           - P2: alpha=0.6, discount_rate=0.7, initial_q_value=0
+#           - number of games: 50000
+#           - Life saving move = 0.05. Draw = 0.5
+
+# SARSA QLearning - P1: alpha=0.7, discount_rate=0.9, initial_q_value=0
+#           - P2: alpha=0.6, discount_rate=0.7, initial_q_value=0
+#           - number of games: 50000
+#           - Life saver = 0, Tie = 0
