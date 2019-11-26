@@ -53,6 +53,7 @@ class QlearningPlayer(TemplatePlayer):
         current_q_value = self.get_q_value(current_state, q_action=current_action)
         off_policy_max_sdash_adash = max(self.get_q_value(q_state=next_state))
         updated_q_value = (1 - self.alpha) * current_q_value + self.alpha * (current_reward + self.discount_rate * off_policy_max_sdash_adash)
+        logging.debug(f'Update Q value: state:{current_state} currentval:{current_q_value} nextvalue:{updated_q_value}')
         self.set_q_value(q_state=current_state, q_action=current_action, q_value=updated_q_value)
 
     def make_a_move(self):
