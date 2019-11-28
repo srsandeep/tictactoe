@@ -48,6 +48,7 @@ class QlearningPlayer(TemplatePlayer):
     def set_q_value(self, q_state=None, q_action=None, q_value=0):
         assert (q_state is not None) and (q_action is not None), 'State and action both needed to set q value'
         self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'qvalue'] = q_value
+        self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'numVisit'] = self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'numVisit'] + 1
 
     def update_q_value(self, current_state, current_action, current_reward, next_state):
         current_q_value = self.get_q_value(current_state, q_action=current_action)

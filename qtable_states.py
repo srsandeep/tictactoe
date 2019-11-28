@@ -52,6 +52,7 @@ class QTable:
         df = df.drop('move_validity', axis=1)
 
         df = df.reset_index().drop('index', axis=1)
+        df['numVisit'] = 0
 
         df.to_csv(self.state_table_file_path, index=False)
 

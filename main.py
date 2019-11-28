@@ -4,6 +4,7 @@ from random_player import RandomPlayer
 from qlearning_player import QlearningPlayer
 from qlearning_sarsa_player import QlearningSARSAPlayer
 from interactive_player import InteractivePlayer
+from smart_learner import QuickLearner
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
@@ -27,10 +28,16 @@ if __name__ == "__main__":
     # player6 = QlearningSARSAPlayer(2, 0)
     # player6.update_rl_parameters(alpha=0.6, discount_rate=0.7, initial_q_value=0)
 
+    player5 = QuickLearner(1, 0.5)
+    player5.update_rl_parameters(alpha=0.7, discount_rate=0.9, initial_q_value=0)
+    # player6 = InteractivePlayer(2)
+    player6 = QuickLearner(2, 0.5)
+    player6.update_rl_parameters(alpha=0.6, discount_rate=0.7, initial_q_value=0)
+
     game_inst.register_players([player5, player6])
     for each_player in game_inst.players:
         each_player.game_prestart_hook()
-    game_inst.play_game_n_time(3, learning_mode=False)
+    game_inst.play_game_n_time(70000, learning_mode=True)
 
     logging.info('Exiting program')
 
