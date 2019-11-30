@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from qlearning_sarsa_player import QlearningSARSAPlayer
+from qlearning_player import QlearningPlayer
 
 class QuickLearner(QlearningSARSAPlayer):
 
@@ -28,6 +29,27 @@ class QuickLearner(QlearningSARSAPlayer):
             my_selected_move = np.random.choice(other_suboptimal_alternatives_min_visit)
         else:
             my_selected_move = np.random.choice(best_action_alternatives_min_visit)
+
+        logging.debug('Player {} selected: {} in state: {}'.format(self.player_id, my_selected_move, current_state))
+        return my_selected_move
+
+
+class ComprehensiveLearner(QlearningPlayer):
+
+    def __init__(self, player_id):
+        super().__init__(player_id)
+        self.player_type = 'ComprehensiveLearner'
+
+
+    def make_a_move(self):
+        assert self.board_obj is not None, f'Player {self.player_id} not assigned a board'
+        current_state = self.board_obj.get_board_state_id()
+
+        # Find minimum visited action(s) in state
+        min_num_visit = self.q_table.loc[self.q_table['StateID']==current_state, 'numVisit'].min()
+        # Take random action for the state that matches min numVisit.
+        min_visit_actions = self.q_table.loc[(self.q_table['StateID']==current_state) & (self.q_table['numVisit']==min_num_visit), 'Action'].values.tolist()
+        my_selected_move = np.random.choice(min_visit_actions)
 
         logging.debug('Player {} selected: {} in state: {}'.format(self.player_id, my_selected_move, current_state))
         return my_selected_move
