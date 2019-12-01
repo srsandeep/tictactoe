@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     player5 = QlearningSARSAPlayer(1, 0)
     player5.update_rl_parameters(alpha=0.7, discount_rate=0.9, initial_q_value=0)
-    player6 = InteractivePlayer(2)
+    # player6 = InteractivePlayer(2)
     # player6 = RandomPlayer(2)
     # player6 = QlearningSARSAPlayer(2, 0)
     # player6.update_rl_parameters(alpha=0.6, discount_rate=0.7, initial_q_value=0)
@@ -34,16 +34,16 @@ if __name__ == "__main__":
     # player6 = QuickLearner(2, 0.0)
     # player6.update_rl_parameters(alpha=0.6, discount_rate=0.7, initial_q_value=0)
 
-    player5 = ComprehensiveLearner(1)
-    player5.update_rl_parameters(alpha=0.7, discount_rate=0.9, initial_q_value=0)
-    # player5 = InteractivePlayer(1)
+    # player5 = ComprehensiveLearner(1)
+    # player5.update_rl_parameters(alpha=0.7, discount_rate=0.9, initial_q_value=0)
+    player5 = InteractivePlayer(1)
     player6 = ComprehensiveLearner(2)
     player6.update_rl_parameters(alpha=0.6, discount_rate=0.7, initial_q_value=0)
 
     game_inst.register_players([player5, player6])
     for each_player in game_inst.players:
-        each_player.game_prestart_hook()
-    game_inst.play_game_n_time(40000, learning_mode=True)
+        each_player.game_prestart_hook(learning_mode=False)
+    game_inst.play_game_n_time(4)
 
     logging.info('Exiting program')
 

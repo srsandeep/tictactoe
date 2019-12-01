@@ -10,11 +10,13 @@ class TemplatePlayer:
         self.player_id = player_id
         self.my_moves = []
         self.win_count = 0
+        self.learning_mode = False
 
     def assign_board(self, board_inst):
         self.board_obj = board_inst
 
-    def game_prestart_hook(self):
+    def game_prestart_hook(self, learning_mode=False):
+        self.learning_mode = learning_mode
         self.load_all_info()
 
     def increment_win_count(self):

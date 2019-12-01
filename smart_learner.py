@@ -45,12 +45,20 @@ class ComprehensiveLearner(QlearningPlayer):
         assert self.board_obj is not None, f'Player {self.player_id} not assigned a board'
         current_state = self.board_obj.get_board_state_id()
 
-        # Find minimum visited action(s) in state
-        min_num_visit = self.q_table.loc[self.q_table['StateID']==current_state, 'numVisit'].min()
-        # Take random action for the state that matches min numVisit.
-        min_visit_actions = self.q_table.loc[(self.q_table['StateID']==current_state) & (self.q_table['numVisit']==min_num_visit), 'Action'].values.tolist()
-        my_selected_move = np.random.choice(min_visit_actions)
+        if self.learning_mode:
+            # Find minimum visited action(s) in state
+            min_num_visit = self.q_table.loc[self.q_table['StateID']==current_state, 'numVisit'].min()
+            # Take random action for the state that matches min numVisit.
+            min_visit_actions = self.q_table.loc[(self.q_table['StateID']==current_state) & (self.q_table['numVisit']==min_num_visit), 'Action'].values.tolist()
+            my_selected_move = np.random.choice(min_visit_actions)
+
+        else:
+            best_q_value = max(self.get_q_value(current_state))
+            my_selected_move = np.random.choice(self.q_table.loc[(self.q_table['StateID']==current_state) & (self.q_table['qvalue']==best_q_value), 'Action'])
 
         logging.debug('Player {} selected: {} in state: {}'.format(self.player_id, my_selected_move, current_state))
         return my_selected_move
 
+    def set_q_value(self, q_state=None, q_action=None, q_value=0):
+        super().set_q_value(q_state=q_state, q_action=q_action, q_value=q_value)
+        self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'numVisit'] = self.q_table.loc[(self.q_table['StateID']==q_state) & (self.q_table['Action']==q_action), 'numVisit'] + 1

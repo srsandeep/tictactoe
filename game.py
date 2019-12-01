@@ -83,7 +83,7 @@ class Game:
             each_player.end_of_game_information(state_action_reward_nstate[player_index])
         logging.info(f'Head-2-Head stats: {self.head_2_head_stats_df.tail(1).values}')
 
-    def play_game_n_time(self, num_games, learning_mode=True):
+    def play_game_n_time(self, num_games):
         assert len(self.players) == self.num_players, 'Not enough players for the game'
 
         player_id_list = [each_player.player_id for each_player in self.players]
@@ -91,10 +91,10 @@ class Game:
 
         for i in range(num_games):
             self.play_one_game(gameid=i)
-        if learning_mode:
-            for each_player_index in range(len(self.players)):
-                if hasattr(self.players[each_player_index], 'save_all_info'):
-                    self.players[each_player_index].save_all_info()
+
+        for each_player_index in range(len(self.players)):
+            if hasattr(self.players[each_player_index], 'save_all_info'):
+                self.players[each_player_index].save_all_info()
 
         logging.info('Num Games: {}'.format(num_games))
         logging.info('Win counts: {}'.format(dict(zip([each_player.player_id for each_player in self.players], [each_player.win_count for each_player in self.players]))))
